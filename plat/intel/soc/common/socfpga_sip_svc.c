@@ -395,6 +395,11 @@ static uint32_t intel_mbox_send_cmd(uint32_t cmd, uint32_t *args, uint32_t len,
 	if (!is_address_in_ddr_range((uint64_t)args, sizeof(uint32_t) * len))
 		return INTEL_SIP_SMC_STATUS_REJECTED;
 
+	if ((resp_len != 0U) &&
+	    !is_address_in_ddr_range((uint64_t)response,
+				     sizeof(uint32_t) * resp_len))
+		return INTEL_SIP_SMC_STATUS_REJECTED;
+
 	int status = mailbox_send_cmd(MBOX_JOB_ID, cmd, args, len, urgent,
 				      response, resp_len);
 
