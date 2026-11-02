@@ -10,16 +10,21 @@
 #include <common/debug.h>
 #include <plat/common/platform.h>
 
+static void char_print(char **s, size_t n, size_t *chars_printed, char c)
+{
+	if (*chars_printed < n) {
+		*(*s) = c;
+		(*s)++;
+	}
+
+	(*chars_printed)++;
+}
+
 static void string_print(char **s, size_t n, size_t *chars_printed,
 			 const char *str)
 {
 	while (*str != '\0') {
-		if (*chars_printed < n) {
-			*(*s) = *str;
-			(*s)++;
-		}
-
-		(*chars_printed)++;
+		char_print(s, n, chars_printed, *str);
 		str++;
 	}
 }
@@ -48,30 +53,22 @@ static void unsigned_num_print(char **s, size_t n, size_t *chars_printed,
 	} while (unum > 0U);
 
 	width = i;
-	if (padn > width) {
-		(*chars_printed) += (size_t)padn;
-	} else {
-		(*chars_printed) += (size_t)width;
+
+	if (padn > 0) {
+		while (width < padn) {
+			char_print(s, n, chars_printed, padc);
+			padn--;
+		}
 	}
 
-	if (*chars_printed < n) {
+	while (--i >= 0) {
+		char_print(s, n, chars_printed, num_buf[i]);
+	}
 
-		if (padn > 0) {
-			while (width < padn) {
-				*(*s)++ = padc;
-				padn--;
-			}
-		}
-
-		while (--i >= 0) {
-			*(*s)++ = num_buf[i];
-		}
-
-		if (padn < 0) {
-			while (width < -padn) {
-				*(*s)++ = padc;
-				padn++;
-			}
+	if (padn < 0) {
+		while (width < -padn) {
+			char_print(s, n, chars_printed, padc);
+			padn++;
 		}
 	}
 }
@@ -164,7 +161,7 @@ loop:
 					}
 					chars_printed++;
 
-					unum = (unsigned int)-num;
+					unum = 0U - (unsigned int)num;
 				} else {
 					unum = (unsigned int)num;
 				}
@@ -185,7 +182,11 @@ loop:
 				unum = (uintptr_t)va_arg(args, void *);
 				if (unum > 0U) {
 					string_print(&s, n, &chars_printed, "0x");
-					padn -= 2;
+					if (padn > 0) {
+						padn -= 2;
+					} else if (padn < 0) {
+						padn += 2;
+					}
 				}
 				unsigned_num_print(&s, n, &chars_printed,
 						   unum, 16, padc, padn, false);
